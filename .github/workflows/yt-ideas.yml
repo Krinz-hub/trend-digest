@@ -1,0 +1,35 @@
+name: YouTube ideas
+
+on:
+  schedule:
+    - cron: "30 2 * * *"   # 8:00am IST daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ideas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run idea generator
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python yt_ideas.py
+      - name: Save seen list
+        run: |
+          git config user.name "digest-bot"
+          git config user.email "digest-bot@users.noreply.github.com"
+          git pull --rebase || true
+          git add seen_yt.json || true
+          git diff --cached --quiet || (git commit -m "update seen_yt" && git push)
